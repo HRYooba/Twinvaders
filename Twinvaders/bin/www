@@ -30,28 +30,32 @@ io.on('connection', function(socket) {
   // クライアントからサーバーへ メッセージ送信ハンドラ（自分を含む全員宛に送る）
   socket.on('c2s_update', function(data) {
     // サーバーからクライアントへ メッセージを送る
-    io.sockets.emit('s2c_update', {
-      id: data.id,
-      user: data.user,
-      image: data.image,
-      posX: data.posX,
-      posY: data.posY,
-      type: data.type,
-      color: data.color,
-    });
+    if (data.angle) {
+      io.sockets.emit('s2c_update', {
+        id: data.id,
+        user: data.user,
+        posX: data.posX,
+        posY: data.posY,
+        type: data.type,
+        color: data.color,
+        angle: data.angle,
+      });
+    } else {
+      io.sockets.emit('s2c_update', {
+        id: data.id,
+        user: data.user,
+        posX: data.posX,
+        posY: data.posY,
+        type: data.type,
+        color: data.color,
+      });
+    }
   });
   socket.on('c2s_bullet', function(data) {
     // サーバーからクライアントへ メッセージを送る
     io.sockets.emit('s2c_bullet', {
       id: data.id,
       user: data.user,
-    });
-  });
-  socket.on('c2s_shake', function(data) {
-    // サーバーからクライアントへ メッセージを送る
-    io.sockets.emit('s2c_shake', {
-      id: data.id,
-      angle: data.angle,
     });
   });
 

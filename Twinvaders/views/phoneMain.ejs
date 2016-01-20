@@ -23,6 +23,7 @@
       var angle = 0;
       var dead = false;
       var frameCount = 0;
+      var isShake = false;
 
       window.addEventListener('load', function() {
 
@@ -38,10 +39,7 @@
         function shakeEventDidOccur() {
           //put your own code here etc.
           angle = Math.random() * Math.PI * 2.0;
-          ioSocket.emit("c2s_shake", {
-            id: "<%= id %>",
-            angle: angle
-          });
+          isShake = true;
         }
 
         $("#lose").hide();
@@ -129,7 +127,7 @@
 
       function update() {
         requestAnimationFrame(update);
-        frameCount++;
+        frameCount ++;
 
         /*閾値を越えたら傾けた角度の分動く*/
         if (Math.abs(30 - beta) > 10) {
@@ -160,15 +158,27 @@
 
         // クライアントからサーバーへ送信
         if (!dead && frameCount % 2 == 0) {
-          ioSocket.emit("c2s_update", {
-            id: "<%= id %>",
-            user: "<%= user %>",
-            image: "<%= image %>",
-            posX: posX,
-            posY: posY,
-            type: "<%= type %>",
-            color: "<%= color %>"
-          });
+          if (isShake) {
+            ioSocket.emit("c2s_update", {
+              id: "<%= id %>",
+              user: "<%= user %>",
+              posX: posX,
+              posY: posY,
+              type: "<%= type %>",
+              color: "<%= color %>",
+              angle: angle,
+            });
+          } else {
+            ioSocket.emit("c2s_update", {
+              id: "<%= id %>",
+              user: "<%= user %>",
+              posX: posX,
+              posY: posY,
+              type: "<%= type %>",
+              color: "<%= color %>",
+            });  
+          }
+          isShake = false;
           draw();
         }
       }

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 
@@ -50,7 +51,7 @@
             var id = data.id;
             user[id] = data.user;
             if (!(id in image)) {
-              image[id] = data.image;
+              image[id] = "http://www.paper-glasses.com/api/twipi/" + data.user + "/original";
             }
             posX[id] = data.posX;
             posY[id] = data.posY;
@@ -58,10 +59,7 @@
             color[id] = data.color;
             logoutTime[id] = 0;
             isLogin[id] = true;
-          });
-          ioSocket.on("s2c_shake", function(data) {
-            if (!(data.id in bulletExist)) {
-              var id = data.id;
+            if (data.angle) {
               isShake[id] = true;
               angle[id] = data.angle;
             }
