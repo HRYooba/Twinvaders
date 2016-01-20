@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Twinvaders</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js" type="text/javascript"></script>
+    <script src="/socket.io/socket.io.js" type="text/javascript"></script>
+    <script type="text/javascript">
+      var width = 1150;
+      var height = 750;
+
+      var user = {};
+      var image = {};
+      var type = {};
+      var color = {};
+      var posX = {};
+      var posY = {};
+      var logoutTime = {};
+      var isLogin = {};
+      var isShake = {};
+      var bulletExist = {};
+      var bulletX = {};
+      var bulletY = {};
+      var bulletSpeedX = {};
+      var bulletSpeedY = {};
+      var angle = {};
+      var dead = {};
+
+      var size = 60; //アイコンのサイズを指定
+      var background = new Image();
+
+      var frameCount = 0;
+      background.src = "../public/image/ufo.png";
+
+      window.addEventListener('load', function() {
+        update();
+      }, false);
+
+      var ioSocket = io();
+
+      // サーバーからのデータ受け取り処理
+      ioSocket.on("connect", function() {}); // 接続
+      ioSocket.on("disconnect", function() {}); // 切断
+
+      // サーバーからのデータ受け取り
+      function s2c() {
+        if (frameCount % 2 == 0) {
+          ioSocket.on("s2c_update", function(data) {
+            var id = data.id;
+            user[id] = data.user;
+            if (!(id in image)) {
+              image[id] = data.image;
+            }
+            posX[id] = data.posX;
+            posY[id] = data.posY;
+            type[id] = data.type;
+            color[id] = data.color;
+            logoutTime[id] = 0;
+            isLogin[id] = true;
+          });
+          ioSocket.on("s2c_shake", function(data) {
+            if (!(data.id in bulletExist)) {
+              var id = data.id;
+              isShake[id] = true;
+              angle[id] = data.angle;
+            }
+          });
+        }
+      }
+
+      function update() {
+        requestAnimationFrame(update);
+        s2c();
+        frameCount++;
+        for (var id in logoutTime) {
+          logoutTime[id]++;
+          if (logoutTime[id] > 30) {
+            isLogin[id] = false;
+          }
+        }
+        draw();
+      }
+
+      function draw() {
+        DD = new Date(); //時間取得
+        var seconds = DD.getSeconds();
+        var pose;
+        if (seconds % 2 == 0) {
+          pose = -1; //ポーズ切り替え
+        } else {
+          pose = 1;
+        }
+
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+
+        // ctx.fillStyle = "#000000"; //背景を黒にする
+        // ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(background, 0, 0);
+
+        for (var id in isLogin) { //連想配列のすべての要素に対して処理
+          if (isLogin[id]) {
+            for (var bulletId in bulletExist) { //弾の連想配列に対して処理
+              if (bulletId != id && bulletX[bulletId] > (posX[id] - size / 2) && bulletX[bulletId] < (posX[id] + size) && bulletY[bulletId] > (posY[id] - size / 2) && bulletY[bulletId] < (posY[id] + size / 2)) {
+                delete bulletExist[bulletId];
+                dead[id] = true;
+                //弾が当たったら相手のidを送る
+                ioSocket.emit("c2s_bullet", {
+                  id: id,
+                  user: user[bulletId]
+                });
+              }
+            }
+
+            ctx.shadowColor = color[id]; //指定した色
+            ctx.shadowBlur = 0; //シャドウの強さ
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            if (dead[id]) {
+              // console.log("hey");
+              drawBurst(ctx, id, 1);
+            } else {
+              ctx.fillStyle = color[id]; //指定した色
+              ctx.shadowBlur = 10; //シャドウを付ける
+              drawUser(type[id], ctx, posX[id], posY[id], size, pose); //ドット描写
+              /*posX,posYに画像を表示*/
+              ctx.fillRect(posX[id] - size / 2 - 1, posY[id] - size / 2 - 1, size + 2, size + 2);
+              ctx.shadowBlur = 0;
+              var img = new Image();
+              img.src = image[id];
+              ctx.drawImage(img, posX[id] - size / 2, posY[id] - size / 2, size, size);
+            }
+          } else {
+            dead[id] = false;
+          }
+          if (isShake[id]) {
+            isShake[id] = false;
+            bulletExist[id] = true;
+            bulletSpeedX[id] = Math.cos(angle[id]) * 7.0;
+            bulletSpeedY[id] = Math.sin(angle[id]) * 7.0;
+            bulletX[id] = posX[id];
+            bulletY[id] = posY[id];
+          }
+          if (bulletExist[id]) {
+            drawBullet(ctx, id, pose);
+          }
+        }
+      }
+
+      function drawBurst(ctx, id, pose) {
+        if (pose == 1) {
+          ctx.strokeStyle = color[id];
+          ctx.shadowBlur = 10; //シャドウを付ける
+          ctx.lineWidth = 8;
+          for (var i = Math.PI / 4.0; i < Math.PI * 2.0; i += Math.PI / 2.0) {
+            ctx.beginPath();
+            ctx.moveTo(posX[id] + 25 * Math.cos(i), posY[id] + 25 * Math.sin(i));
+            ctx.lineTo(posX[id] + 50 * Math.cos(i), posY[id] + 50 * Math.sin(i));
+            ctx.stroke();
+          }
+          for (var i = 0.0; i < Math.PI * 2; i += Math.PI / 2) {
+            ctx.beginPath();
+            ctx.moveTo(posX[id] + 40 * Math.cos(i), posY[id] + 40 * Math.sin(i));
+            ctx.lineTo(posX[id] + 50 * Math.cos(i), posY[id] + 50 * Math.sin(i));
+            ctx.stroke();
+          }
+        }
+      }
+
+      function drawBullet(ctx, id, pose) {
+        bulletX[id] += bulletSpeedX[id];
+        bulletY[id] += bulletSpeedY[id];
+        if (bulletX[id] >= width) {
+          delete bulletExist[id];
+        }
+        if (bulletX[id] <= 0) {
+          delete bulletExist[id];
+        }
+        if (bulletY[id] >= height) {
+          delete bulletExist[id];
+        }
+        if (bulletY[id] <= 0) {
+          delete bulletExist[id];
+        }
+        ctx.strokeStyle = color[id];
+        ctx.shadowBlur = 10; //シャドウを付ける
+        ctx.lineWidth = 5;
+        ctx.save();
+        ctx.translate(bulletX[id], bulletY[id]);
+        ctx.rotate(angle[id]);
+        if (pose == 1) {
+          ctx.beginPath();
+          ctx.moveTo(size / 4, -size / 20);
+          ctx.lineTo(size / 8, size / 20);
+          ctx.lineTo(0, -size / 20);
+          ctx.lineTo(-size / 8, size / 20);
+          ctx.lineTo(-size / 4, -size / 20);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(size / 4, size / 20);
+          ctx.lineTo(size / 8, -size / 20);
+          ctx.lineTo(0, size / 20);
+          ctx.lineTo(-size / 8, -size / 20);
+          ctx.lineTo(-size / 4, size / 20);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawUser(type, ctx, posX, posY, size, pose) {
+        if (type == "typeA") {
+          if (pose == 1) { //2
+            ctx.fillRect(posX - size / 6, posY - size * 2 / 3, size / 6, size / 6); //アンテナ
+            ctx.fillRect(posX, posY - size * 5 / 6, size / 6, size / 6);
+            ctx.fillRect(posX - size / 6, posY - size, size / 6, size / 6);
+            ctx.fillRect(posX - size * 2 / 3, posY, size / 6, size / 3); //左腕
+            ctx.fillRect(posX - size * 2 / 3, posY + size / 2, size / 6, size / 6);
+            ctx.fillRect(posX - size / 2, posY + size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX + size / 2, posY, size / 6, size / 3); //右腕
+            ctx.fillRect(posX + size / 2, posY + size / 2, size / 6, size / 6);
+            ctx.fillRect(posX + size / 3, posY + size * 2 / 3, size / 6, size / 6);
+          } else { //5
+            ctx.fillRect(posX - size / 6, posY - size * 2 / 3, size / 6, size / 6); //アンテナ
+            ctx.fillRect(posX, posY - size * 5 / 6, size / 6, size / 6);
+            ctx.fillRect(posX - size / 6, posY - size, size / 6, size / 6);
+            ctx.fillRect(posX - size * 2 / 3, posY, size / 6, size / 3); //左腕
+            ctx.fillRect(posX - size * 5 / 6, posY + size / 6, size / 6, size / 2);
+            ctx.fillRect(posX - size * 2 / 3, posY + size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX + size / 2, posY, size / 6, size / 3); //右腕
+            ctx.fillRect(posX + size * 2 / 3, posY + size / 6, size / 6, size / 2);
+            ctx.fillRect(posX + size / 2, posY + size * 2 / 3, size / 6, size / 6);
+          }
+        }
+        if (type == "typeB") {
+          if (pose == 1) { //1
+            ctx.fillRect(posX - size * 5 / 6, posY - size / 3, size / 6, size / 3); //左腕
+            ctx.fillRect(posX - size * 2 / 3, posY - size / 6, size / 6, size / 2);
+            ctx.fillRect(posX + size * 2 / 3, posY - size / 3, size / 6, size / 3); //右腕
+            ctx.fillRect(posX + size / 2, posY - size / 6, size / 6, size / 2);
+            ctx.fillRect(posX - size / 3, posY + size / 2, size / 6, size / 3); //足
+            ctx.fillRect(posX + size / 6, posY + size / 2, size / 6, size / 3);
+          } else { //12
+            ctx.fillRect(posX - size * 5 / 6, posY - size / 3, size / 6, size / 3); //左腕
+            ctx.fillRect(posX - size * 2 / 3, posY - size / 6, size / 6, size / 3);
+            ctx.fillRect(posX + size * 2 / 3, posY - size / 3, size / 6, size / 3); //右腕
+            ctx.fillRect(posX + size / 2, posY - size / 6, size / 6, size / 3);
+            ctx.fillRect(posX - size * 2 / 3, posY + size / 2, size / 6, size / 6); //足
+            ctx.fillRect(posX + size / 2, posY + size / 2, size / 6, size / 6);
+          }
+        }
+        if (type == "typeC") {
+          if (pose == 1) { //3
+            ctx.fillRect(posX, posY - size * 5 / 6, size / 6, size / 3); //アンテナ
+            ctx.fillRect(posX - size / 6, posY - size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX - size / 2, posY + size / 2, size / 6, size / 3); //左足
+            ctx.fillRect(posX - size * 2 / 3, posY + size * 5 / 6, size / 6, size / 6);
+            ctx.fillRect(posX + size / 3, posY + size / 2, size / 6, size / 3); //右足
+            ctx.fillRect(posX + size / 2, posY + size * 5 / 6, size / 6, size / 6);
+          } else {
+            ctx.fillRect(posX - size / 6, posY - size * 5 / 6, size / 6, size / 3); //アンテナ
+            ctx.fillRect(posX, posY - size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX - size / 2, posY + size / 2, size / 6, size / 6); //左足
+            ctx.fillRect(posX - size / 3, posY + size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX - size / 6, posY + size * 5 / 6, size / 6, size / 6);
+            ctx.fillRect(posX + size / 3, posY + size / 2, size / 6, size / 6); //右足
+            ctx.fillRect(posX + size / 6, posY + size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX, posY + size * 5 / 6, size / 6, size / 6);
+          }
+        }
+        if (type == "typeD") {
+          if (pose == 1) { //6
+            ctx.fillRect(posX - size / 6, posY - size * 2 / 3, size / 6, size / 6); //アンテナ
+            ctx.fillRect(posX, posY - size * 5 / 6, size / 6, size / 6);
+            ctx.fillRect(posX - size / 6, posY - size, size / 6, size / 6);
+            ctx.fillRect(posX, posY + size / 2, size / 6, size / 6); //アンテナ
+            ctx.fillRect(posX - size / 6, posY + size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX, posY + size * 5 / 6, size / 6, size / 6);
+            ctx.fillRect(posX - size * 2 / 3, posY - size / 3, size / 6, size * 2 / 3); //端
+            ctx.fillRect(posX + size / 2, posY - size / 3, size / 6, size * 2 / 3);
+          } else {
+            ctx.fillRect(posX, posY - size * 2 / 3, size / 6, size / 6); //アンテナ
+            ctx.fillRect(posX - size / 6, posY - size * 5 / 6, size / 6, size / 6);
+            ctx.fillRect(posX, posY - size, size / 6, size / 6);
+            ctx.fillRect(posX - size / 6, posY + size / 2, size / 6, size / 6); //アンテナ
+            ctx.fillRect(posX, posY + size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX - size / 6, posY + size * 5 / 6, size / 6, size / 6);
+            ctx.fillRect(posX - size * 2 / 3, posY - size / 3, size / 6, size * 2 / 3); //端
+            ctx.fillRect(posX + size / 2, posY - size / 3, size / 6, size * 2 / 3);
+          }
+        }
+        if (type == "typeE") {
+          if (pose == 1) { //9
+            ctx.fillRect(posX - size / 6, posY - size * 5 / 6, size / 3, size / 6); //頭
+            ctx.fillRect(posX - size / 3, posY - size * 2 / 3, size * 2 / 3, size / 6);
+            ctx.fillRect(posX - size * 2 / 3, posY + size / 6, size / 6, size / 2); //左足
+            ctx.fillRect(posX - size * 5 / 6, posY + size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX + size / 2, posY + size / 6, size / 6, size / 2); //右足
+            ctx.fillRect(posX + size * 2 / 3, posY + size * 2 / 3, size / 6, size / 6);
+          } else {
+            ctx.fillRect(posX - size / 6, posY - size, size / 6, size / 6); //頭
+            ctx.fillRect(posX - size / 6, posY - size * 5 / 6, size / 3, size / 6);
+            ctx.fillRect(posX - size / 3, posY - size * 2 / 3, size * 2 / 3, size / 6);
+            ctx.fillRect(posX - size / 2, posY + size * 2 / 3, size / 6, size / 6); //足
+            ctx.fillRect(posX - size / 3, posY + size / 2, size / 6, size / 6);
+            ctx.fillRect(posX - size / 6, posY + size / 2, size / 6, size / 3);
+            ctx.fillRect(posX + size / 6, posY + size / 2, size / 6, size / 6);
+            ctx.fillRect(posX + size / 3, posY + size * 2 / 3, size / 6, size / 6);
+          }
+        }
+        if (type == "typeF") {
+          if (pose == 1) { //10
+            ctx.fillRect(posX - size / 2, posY - size * 5 / 6, size / 6, size / 6); //耳
+            ctx.fillRect(posX - size / 3, posY - size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX + size / 3, posY - size * 5 / 6, size / 6, size / 6);
+            ctx.fillRect(posX + size / 6, posY - size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX - size * 5 / 6, posY + size * 2 / 3, size / 6, size / 6); //足
+            ctx.fillRect(posX - size * 2 / 3, posY + size / 2, size * 4 / 3, size / 6);
+            ctx.fillRect(posX + size * 2 / 3, posY + size * 2 / 3, size / 6, size / 6);
+          } else {
+            ctx.fillRect(posX - size / 6, posY - size, size / 6, size / 6); //アンテナ
+            ctx.fillRect(posX, posY - size * 5 / 6, size / 6, size / 3);
+            ctx.fillRect(posX - size * 5 / 6, posY + size / 2, size / 6, size / 6); //足
+            ctx.fillRect(posX - size * 2 / 3, posY + size * 2 / 3, size / 3, size / 6);
+            ctx.fillRect(posX - size / 3, posY + size / 2, size * 2 / 3, size / 6);
+            ctx.fillRect(posX + size / 3, posY + size * 2 / 3, size / 3, size / 6);
+            ctx.fillRect(posX + size * 2 / 3, posY + size / 2, size / 6, size / 6);
+          }
+        }
+        if (type == "typeG") {
+          if (pose == 1) { //7
+            ctx.fillRect(posX - size / 6, posY - size * 5 / 6, size / 6, size / 6);
+            ctx.fillRect(posX, posY - size * 2 / 3, size / 3, size / 6);
+            ctx.fillRect(posX + size * 2 / 3, posY - size / 6, size / 6, size / 6);
+            ctx.fillRect(posX + size / 2, posY, size / 6, size / 3);
+            ctx.fillRect(posX, posY + size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX - size / 3, posY + size / 2, size / 3, size / 6);
+            ctx.fillRect(posX - size * 5 / 6, posY, size / 6, size / 6);
+            ctx.fillRect(posX - size * 2 / 3, posY - size / 3, size / 6, size / 3);
+          } else {
+            ctx.fillRect(posX - size / 2, posY - size * 5 / 6, size / 6, size / 6);
+            ctx.fillRect(posX - size / 3, posY - size * 2 / 3, size / 3, size / 6);
+            ctx.fillRect(posX + size * 2 / 3, posY - size / 2, size / 6, size / 6);
+            ctx.fillRect(posX + size / 2, posY - size / 3, size / 6, size / 3);
+            ctx.fillRect(posX + size / 3, posY + size * 2 / 3, size / 6, size / 6);
+            ctx.fillRect(posX, posY + size / 2, size / 3, size / 6);
+            ctx.fillRect(posX - size * 5 / 6, posY + size / 3, size / 6, size / 6);
+            ctx.fillRect(posX - size * 2 / 3, posY, size / 6, size / 3);
+          }
+        }
+      }
+    </script>
+    <link href="../public/stylesheets/pc.css" rel="stylesheet" type="text/css">
+  </head>
+
+  <body>
+    <canvas height="750" id="canvas" width="1150"></canvas>
+  </body>
+
+</html>

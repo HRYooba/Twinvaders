@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <title>ABOUT</title>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes" name="viewport">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+      var HowToPlay = [];
+      var HowToChange = [];
+      var Abstract = [];
+
+      $(function() {
+        var reqURL = "../public/json/about.json";
+        $.ajax({
+          url: reqURL,
+          dataType: "json",
+          success: function(data) {
+            console.log(data);
+            HowToPlay = data.HowToPlay;
+            HowToChange = data.HowToChange;
+            Abstract = data.Abstract;
+            $("#test").html(HowToPlay[0]);
+            $("#test2").html(HowToPlay[1]);
+            $("#test3").html(HowToPlay[2]);
+            $("#test5").html(HowToChange[0]);
+            $("#test6").html(HowToChange[1]);
+          }
+        })
+      });
+
+      window.addEventListener('load', function() {
+        var isMenuShow = false;
+
+        $(".bunObj").click(function() {
+          if (isMenuShow) {
+            $(".main").animate({
+              'margin-left': '-=150px'
+            }, 300);
+            $(".bun").animate({
+              'opacity': '1'
+            }, 200);
+            $(".bun").show(150);
+            $(".cross").animate({
+              'opacity': '0'
+            }, 100);
+            $(".cross").hide(150);
+            isMenuShow = false;
+          } else {
+            $(".main").animate({
+              'margin-left': '+=150px'
+            }, 300);
+            $(".bun").animate({
+              'opacity': '0'
+            }, 100);
+            $(".bun").hide(150);
+            $(".cross").animate({
+              'opacity': '1'
+            }, 200);
+            $(".cross").show(100);
+            isMenuShow = true;
+          }
+        });
+        update();
+      }, false);
+
+      function update() {
+        requestAnimationFrame(update);
+        $(".child").height($(".main").height() + 90);
+      }
+    </script>
+    <link href="../public/stylesheets/phone.css" rel="stylesheet" type="text/css">
+  </head>
+
+  <body>
+    <!-- menubar -->
+    <div class="menubar">
+      <nav class="child">
+        <ul>
+          <li>
+            <form action="/phoneMain" method="get">
+              <input class="menuHOME" type="submit" value="HOME">
+            </form>
+          </li>
+          <li>
+            <form action="change.php" method="get">
+              <input name=id type="hidden" value="<%= id %>">
+              <input name=image type="hidden" value="<%= image %>">
+              <input name=color type="hidden" value="<%= color %>">
+              <input name=type type="hidden" value="<%= type %>">
+              <input name=user type="hidden" value="<%= user %>">
+              <input class="menuCHANGE" type="submit" value="CHANGE">
+            </form>
+          </li>
+          <li>
+            <form action="/about" method="get">
+              <input class="menuABOUT" type="submit" value="ABOUT">
+            </form>
+          </li>
+          <li>
+            <form action="/logout" method="get">
+              <input class="menuLOGOUT" type="submit" value="LOGOUT">
+            </form>
+          </li>
+        </ul>
+      </nav>
+    </div>
+    <!-- main -->
+    <div class="main">
+      <div class="bunObj">
+        <div class="bun top"></div>
+        <div class="bun middle"></div>
+        <div class="bun bottom"></div>
+        <div class="cross right"></div>
+        <div class="cross left"></div>
+      </div>
+      <div class="content">
+        <div id="hex">
+          <image id="hexImage" src="../public/image/hex.png"></image>
+        </div>
+        <p id="test" style="color: #fff;"></p>
+        <!-- ここにスマホの傾きとインベーダーの動きが一致しているとわかる画像 -->
+        <image height="277" src="../public/image/shake_updown.gif" style="margin: 100px 0 0 0;" width="213"></image>
+        <image height="277" src="../public/image/shake_rightleft.gif" style="margin: .0px 0 0 0;" width="213"></image>
+        <br>
+        <p id="test2" style="color: #fff;"></p>
+        <!-- ここにインベーダーからビームが発射されている画像　-->
+        <image height="159" src="../public/image/shoot.png" style="margin: 0 0 0 0; border: 2px solid #0bd9c6;box-shadow: 0px 0px 10px #0bd9c6;border-radius: 10px;-webkit-border-radius: 10px;-moz-border-radius: 10px;" width="241"></image>
+        <p id="test3" style="color: #fff;"></p>
+        <br>
+        <br>
+        <p id="test5" style="color: #fff;"></p>
+        <!-- ここにCHANGEボタンを押したときの画面の画像　-->
+        <image height="313" src="../public/image/change.png" style="margin: 0 0 0 0;" width="222"></image>
+        <p id="test6" style="color: #fff;"></p>
+        </div>
+      </body>
+
+    </html>
