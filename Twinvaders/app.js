@@ -36,7 +36,7 @@ passport.deserializeUser(function (obj, done) {
 passport.use(new TwitterStrategy({
         consumerKey: TWITTER_CONSUMER_KEY,
         consumerSecret: TWITTER_CONSUMER_SECRET,
-        callbackURL: "http://twinvaders-hryooba.c9users.io:3000/oauth/callback" //Twitterログイン後、遷移するURL
+        callbackURL: "http://twinvaders-hryooba.c9users.io/oauth/callback" //Twitterログイン後、遷移するURL
     },
     function (token, tokenSecret, profile, done) {
         //console.log(token, tokenSecret, profile);
