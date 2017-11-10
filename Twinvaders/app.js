@@ -33,10 +33,28 @@ passport.deserializeUser(function (obj, done) {
     done(null, obj);
 });
 
+var os = require('os');
+var ifaces = os.networkInterfaces();
+var ipAddress;
+
+// get ip address
+(function() {
+  Object.keys(ifaces).forEach(function(ifname) {
+    ifaces[ifname].forEach(function(iface) {
+      if ('IPv4' !== iface.family || iface.internal !== false) {
+        // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
+        return;
+      }
+      ipAddress = iface.address;
+      return;
+    });
+  });
+})();
+
 passport.use(new TwitterStrategy({
         consumerKey: TWITTER_CONSUMER_KEY,
         consumerSecret: TWITTER_CONSUMER_SECRET,
-        callbackURL: "http://twinvaders-hryooba.c9users.io/oauth/callback" //Twitterログイン後、遷移するURL
+        callbackURL: "http://" + ipAddress + ":3000/oauth/callback" //Twitterログイン後、遷移するURL
     },
     function (token, tokenSecret, profile, done) {
         //console.log(token, tokenSecret, profile);
