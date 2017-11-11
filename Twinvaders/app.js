@@ -1,4 +1,5 @@
 var express = require('express');
+var config = require('config');
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
@@ -22,8 +23,8 @@ var about = require('./routes/about');
 var sessionDelete = require('./routes/sessionDelete');
 
 //Twitter Appsにて取得したConsumer Key (API Key)とConsumer Secret (API Secret)を記述
-var TWITTER_CONSUMER_KEY = "8prYhfWChseLZUtZyO2XQB1I1";
-var TWITTER_CONSUMER_SECRET = "kCeh9MPeNEUm09YIV1do9sVWCBqFCJAJnF9EjPcXudC5zmyNYX";
+var TWITTER_CONSUMER_KEY = config.Twitter.consumerKey;
+var TWITTER_CONSUMER_SECRET = config.Twitter.consumerSecret;
 
 passport.serializeUser(function (user, done) {
     done(null, user);
