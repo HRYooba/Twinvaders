@@ -25,6 +25,7 @@ var sessionDelete = require('./routes/sessionDelete');
 //Twitter Appsにて取得したConsumer Key (API Key)とConsumer Secret (API Secret)を記述
 var TWITTER_CONSUMER_KEY = config.Twitter.consumerKey;
 var TWITTER_CONSUMER_SECRET = config.Twitter.consumerSecret;
+var APP_URL = config.URL.app;
 
 passport.serializeUser(function (user, done) {
     done(null, user);
@@ -36,26 +37,11 @@ passport.deserializeUser(function (obj, done) {
 
 var os = require('os');
 var ifaces = os.networkInterfaces();
-var ipAddress;
-
-// get ip address
-(function() {
-  Object.keys(ifaces).forEach(function(ifname) {
-    ifaces[ifname].forEach(function(iface) {
-      if ('IPv4' !== iface.family || iface.internal !== false) {
-        // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
-        return;
-      }
-      ipAddress = iface.address;
-      return;
-    });
-  });
-})();
 
 passport.use(new TwitterStrategy({
         consumerKey: TWITTER_CONSUMER_KEY,
         consumerSecret: TWITTER_CONSUMER_SECRET,
-        callbackURL: "http://" + ipAddress + ":3000/oauth/callback" //Twitterログイン後、遷移するURL
+        callbackURL: "http://" + APP_URL + "/oauth/callback" //Twitterログイン後、遷移するURL
     },
     function (token, tokenSecret, profile, done) {
         //console.log(token, tokenSecret, profile);
